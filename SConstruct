@@ -10,7 +10,7 @@ else:
 	endian = '_NXT_LITTLE_ENDIAN'
 
 BuildEnv = Environment(CCFLAGS=['-Wall', '-std=gnu99',
-				'-g', '-ggdb', '-D' + endian])
+				'-g', '-ggdb', '-D' + endian, '-I/usr/local/include/libusb-1.0'])
 if auto_libs:
 	BuildEnv.ParseConfig('pkg-config --cflags --libs ' + auto_libs)
 

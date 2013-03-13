@@ -23,6 +23,7 @@
 #define __LOWLEVEL_H__
 
 #include <usb.h>
+#include <libusb.h>
 #include "error.h"
 
 struct nxt_t;
