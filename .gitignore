@@ -1,0 +1,8 @@
+*.o
+*.a
+*.pyc
+*.py
+/flash_routine.h
+/fwflash
+/fwexec
+/.sconsign.dblite
