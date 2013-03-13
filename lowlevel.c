@@ -26,7 +26,6 @@
 #include <stdint.h>
 #include <unistd.h>
 #include <errno.h>
-#include <usb.h>
 
 #include "lowlevel.h"
 
