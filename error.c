@@ -32,6 +32,7 @@ static const char const *err_str[] = {
   "NXT handshake failed",
   "File open/handling error",
   "Invalid firmware image",
+  "Other error"
 };
 
 const char const *

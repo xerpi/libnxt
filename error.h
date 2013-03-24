@@ -34,6 +34,7 @@ typedef enum
   NXT_HANDSHAKE_FAILED = 7,
   NXT_FILE_ERROR = 8,
   NXT_INVALID_FIRMWARE = 9,
+  NXT_OTHER_ERROR = 10
 } nxt_error_t;
 
 const char const *nxt_str_error(nxt_error_t err);

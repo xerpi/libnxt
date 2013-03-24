@@ -29,6 +29,9 @@
 
 #include "lowlevel.h"
 
+/**
+ * USB vendor and product ids for NXT.
+ */
 enum nxt_usb_ids {
   VENDOR_LEGO   = 0x0694,
   VENDOR_ATMEL  = 0x03EB,
@@ -36,144 +39,150 @@ enum nxt_usb_ids {
   PRODUCT_SAMBA = 0x6124
 };
 
+/**
+ * Structure representing a NXT device.
+ */
 struct nxt_t {
-  struct usb_device *dev;
-  struct usb_dev_handle *hdl;
+  struct libusb_device *dev;
+  struct libusb_device_handle *hdl;
   int is_in_reset_mode;
 };
 
-
-nxt_error_t nxt_init(nxt_t **nxt)
-{
-  usb_init();
+/**
+ * Initialize a device and the underlying libusb library.
+ */
+nxt_error_t nxt_init(nxt_t **nxt) {
+  int err = libusb_init(NULL);
+  if (err!=0) return NXT_OTHER_ERROR;
   *nxt = calloc(1, sizeof(**nxt));
 
   return NXT_OK;
 }
 
-
-nxt_error_t nxt_find(nxt_t *nxt)
-{
-  struct usb_bus *busses, *bus;
-
-  usb_find_busses();
-  usb_find_devices();
-
-  busses = usb_get_busses();
-
-  for (bus = busses; bus != NULL; bus = bus->next)
-    {
-      struct usb_device *dev;
-
-      for (dev = bus->devices; dev != NULL; dev = dev->next)
-        {
-          if (dev->descriptor.idVendor == VENDOR_ATMEL &&
-              dev->descriptor.idProduct == PRODUCT_SAMBA)
-            {
-              nxt->dev = dev;
-              nxt->is_in_reset_mode = 1;
-              return NXT_OK;
-            }
-          else if (dev->descriptor.idVendor == VENDOR_LEGO &&
-                   dev->descriptor.idProduct == PRODUCT_NXT)
-            {
-              nxt->dev = dev;
-              return NXT_OK;
-            }
-        }
+/**
+ * Find the first NXT device on the USB bus.
+ */
+nxt_error_t nxt_find(nxt_t *nxt) {
+  libusb_device** list;
+  ssize_t numDev = libusb_get_device_list(NULL, &list);
+  if (numDev<0) return NXT_OTHER_ERROR;
+  
+  nxt_error_t ret = NXT_NOT_PRESENT;
+  
+  struct libusb_device_descriptor* desc = 
+    calloc(1,sizeof(struct libusb_device_descriptor));
+  
+  for (int i=0; i<numDev; i++) {
+    libusb_device* dev = list[i];
+    int err = libusb_get_device_descriptor(dev,desc);
+    if (err!=0) {
+      ret = NXT_OTHER_ERROR;
+      break;
     }
-
-  return NXT_NOT_PRESENT;
+    if (desc->idVendor == VENDOR_ATMEL &&
+         desc->idProduct == PRODUCT_SAMBA) {
+    	nxt->dev = dev;
+    	nxt->is_in_reset_mode = 1;
+    	ret = NXT_OK;
+    	break;
+    } else if (desc->idVendor == VENDOR_ATMEL &&
+                desc->idProduct == PRODUCT_NXT) {
+    	nxt->dev = dev;
+    	ret = NXT_OK;
+    	break;
+    } else {
+      libusb_unref_device(dev);
+    }
+  }
+  
+  free(desc);
+  libusb_free_device_list(list,0);
+  return ret;
 }
 
-
+/**
+ * Open NXT device for use.
+ */
 nxt_error_t
-nxt_open(nxt_t *nxt)
-{
+nxt_open(nxt_t *nxt) {
   char buf[2];
-  int ret;
-  char bound_driver_name[20];
+	
+  int err = libusb_open(nxt->dev,&(nxt->hdl));
+  if (err<0) return NXT_OTHER_ERROR;
+  
+  int ret = libusb_set_configuration(nxt->hdl, 1);
+  if (ret<0) {
+    libusb_close(nxt->hdl);
+    return NXT_CONFIGURATION_ERROR;
+  }
 
-  nxt->hdl = usb_open(nxt->dev);
-
-//detach possible kernel driver bound to interface
- if (usb_get_driver_np(nxt->hdl,1,bound_driver_name,sizeof(bound_driver_name))==0)
-   {
-  if (usb_detach_kernel_driver_np(nxt->hdl, 1)<0)
-	fprintf(stderr,"Failed to detach the driver %s (or cdc-acm) bound to the USB interface",bound_driver_name);
-	//Let usb_set_configuration() below return an error and handle it
-   }	
-
-  ret = usb_set_configuration(nxt->hdl, 1);
-  if (ret < 0)
-    {
-      usb_close(nxt->hdl);
-      return NXT_CONFIGURATION_ERROR;
-    }
-
-  ret = usb_claim_interface(nxt->hdl, 1);
-  if (ret < 0)
-    {
-      usb_close(nxt->hdl);
-      return NXT_IN_USE;
-    }
+  ret = libusb_claim_interface(nxt->hdl, 1);
+  if (ret<0) {
+    libusb_close(nxt->hdl);
+    return NXT_IN_USE;
+  }
 
   /* NXT handshake */
   nxt_send_str(nxt, "N#");
   nxt_recv_buf(nxt, buf, 2);
-  if (memcmp(buf, "\n\r", 2) != 0)
-    {
-      usb_release_interface(nxt->hdl, 1);
-      usb_close(nxt->hdl);
+  if (memcmp(buf, "\n\r", 2) != 0) {
+      libusb_release_interface(nxt->hdl, 1);
+      libusb_close(nxt->hdl);
       return NXT_HANDSHAKE_FAILED;
-    }
+  }
 
   return NXT_OK;
 }
 
-
+/**
+ * Close NXT device and deallocate.
+ */
 nxt_error_t
-nxt_close(nxt_t *nxt)
-{
-  usb_release_interface(nxt->hdl, 1);
-  usb_close(nxt->hdl);
+nxt_close(nxt_t *nxt) {
+  libusb_release_interface(nxt->hdl, 1);
+  libusb_close(nxt->hdl);
+  libusb_unref_device(nxt->dev);
   free(nxt);
 
   return NXT_OK;
 }
 
-
+/**
+ * Check if NXT is in initial download, or reset, mode.
+ */
 int
-nxt_in_reset_mode(nxt_t *nxt)
-{
+nxt_in_reset_mode(nxt_t *nxt) {
   return nxt->is_in_reset_mode;
 }
 
-
+/**
+ * Send buffer to NXT.
+ */
 nxt_error_t
-nxt_send_buf(nxt_t *nxt, char *buf, int len)
-{
-  int ret = usb_bulk_write(nxt->hdl, 0x1, buf, len, 0);
-  if (ret < 0)
-    return NXT_USB_WRITE_ERROR;
-
+nxt_send_buf(nxt_t *nxt, char *buf, int len) {
+  int numXfer;
+  int ret = libusb_bulk_transfer(nxt->hdl, 0x1, (unsigned char*)buf, len, &numXfer, 0);
+  
+  if (ret<0) return NXT_USB_WRITE_ERROR;
   return NXT_OK;
 }
 
-
+/**
+ * Send a string to NXT.
+ */
 nxt_error_t
-nxt_send_str(nxt_t *nxt, char *str)
-{
+nxt_send_str(nxt_t *nxt, char *str) {
   return nxt_send_buf(nxt, str, strlen(str));
 }
 
-
+/**
+ * Read data from NXT into buffer.
+ */
 nxt_error_t
-nxt_recv_buf(nxt_t *nxt, char *buf, int len)
-{
-  int ret = usb_bulk_read(nxt->hdl, 0x82, buf, len, 0);
-  if (ret < 0)
-    return NXT_USB_READ_ERROR;
-
+nxt_recv_buf(nxt_t *nxt, char *buf, int len) {
+  int numXfer;
+  int ret = libusb_bulk_transfer(nxt->hdl, 0x82, (unsigned char*)buf, len, &numXfer, 0);
+  
+  if (ret<0) return NXT_USB_READ_ERROR;
   return NXT_OK;
 }
