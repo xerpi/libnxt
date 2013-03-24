@@ -117,12 +117,24 @@ nxt_open(nxt_t *nxt) {
   int BUFLEN = 2;
   char buf[BUFLEN];
 	
-	// open device
+	// open device and obtain handle
   int err = libusb_open(nxt->dev,&(nxt->hdl));
   if (err<0) return NXT_OTHER_ERROR;
   
-  // set configuration
+	// detach kernel driver, if applicable
   int ret = NXT_OK;
+	err = libusb_kernel_driver_active(nxt->hdl,INTFC);
+	if (err==LIBUSB_ERROR_NO_DEVICE) { ret=NXT_NOT_PRESENT; goto errRet; }
+	else if (err!=0 && err!=1 && err!=LIBUSB_ERROR_NOT_SUPPORTED) { 
+	  ret=NXT_OTHER_ERROR;
+	  goto errRet;
+	} else if (err==1) {
+	  err = libusb_detach_kernel_driver(nxt->hdl,INTFC);
+	  if (err!=0) { ret=NXT_OTHER_ERROR; goto errRet; }
+	  nxt->had_kernel_driver = 1;
+  }
+	
+  // set configuration
   err = libusb_set_configuration(nxt->hdl, CONFIG);
   if (err<0) { ret = NXT_CONFIGURATION_ERROR; goto errRet; }
 	
@@ -143,6 +155,7 @@ nxt_open(nxt_t *nxt) {
   
   // cleanup and error return
 errRet:
+  if (nxt->had_kernel_driver) libusb_attach_kernel_driver(nxt->hdl,INTFC);
   libusb_close(nxt->hdl);
   return ret;
 }
