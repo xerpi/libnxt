@@ -166,6 +166,7 @@ errRet:
 nxt_error_t
 nxt_close(nxt_t *nxt) {
   libusb_release_interface(nxt->hdl, INTFC);
+  if (nxt->had_kernel_driver) libusb_attach_kernel_driver(nxt->hdl,INTFC);
   libusb_close(nxt->hdl);
   libusb_unref_device(nxt->dev);
   free(nxt);
