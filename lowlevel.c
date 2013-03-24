@@ -54,6 +54,7 @@ struct nxt_t {
   struct libusb_device *dev;
   struct libusb_device_handle *hdl;
   int is_in_reset_mode;
+  int had_kernel_driver;
 };
 
 /**
@@ -113,33 +114,37 @@ nxt_error_t nxt_find(nxt_t *nxt) {
  */
 nxt_error_t
 nxt_open(nxt_t *nxt) {
-  char buf[2];
+  int BUFLEN = 2;
+  char buf[BUFLEN];
 	
+	// open device
   int err = libusb_open(nxt->dev,&(nxt->hdl));
   if (err<0) return NXT_OTHER_ERROR;
   
-  int ret = libusb_set_configuration(nxt->hdl, CONFIG);
-  if (ret<0) {
-    libusb_close(nxt->hdl);
-    return NXT_CONFIGURATION_ERROR;
-  }
-
-  ret = libusb_claim_interface(nxt->hdl, INTFC);
-  if (ret<0) {
-    libusb_close(nxt->hdl);
-    return NXT_IN_USE;
-  }
-
-  /* NXT handshake */
+  // set configuration
+  int ret = NXT_OK;
+  err = libusb_set_configuration(nxt->hdl, CONFIG);
+  if (err<0) { ret = NXT_CONFIGURATION_ERROR; goto errRet; }
+	
+  // claim interface
+  err = libusb_claim_interface(nxt->hdl, INTFC);
+  if (err<0) { ret = NXT_IN_USE; goto errRet; }
+	
+  // check initial handshake
   nxt_send_str(nxt, "N#");
-  nxt_recv_buf(nxt, buf, 2);
-  if (memcmp(buf, "\n\r", 2) != 0) {
+  nxt_recv_buf(nxt, buf, BUFLEN);
+  if (memcmp(buf, "\n\r", BUFLEN) != 0) {
       libusb_release_interface(nxt->hdl, INTFC);
-      libusb_close(nxt->hdl);
-      return NXT_HANDSHAKE_FAILED;
+      ret = NXT_HANDSHAKE_FAILED;
+      goto errRet;
   }
-
+  
   return NXT_OK;
+  
+  // cleanup and error return
+errRet:
+  libusb_close(nxt->hdl);
+  return ret;
 }
 
 /**
