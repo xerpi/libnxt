@@ -40,6 +40,14 @@ enum nxt_usb_ids {
 };
 
 /**
+ * definitions of configuration, interface, and endpoints
+ */
+int CONFIG = 1;
+int INTFC = 1;
+unsigned char EP_OUT = 0x01;
+unsigned char EP_IN = 0x82;
+
+/**
  * Structure representing a NXT device.
  */
 struct nxt_t {
@@ -110,13 +118,13 @@ nxt_open(nxt_t *nxt) {
   int err = libusb_open(nxt->dev,&(nxt->hdl));
   if (err<0) return NXT_OTHER_ERROR;
   
-  int ret = libusb_set_configuration(nxt->hdl, 1);
+  int ret = libusb_set_configuration(nxt->hdl, CONFIG);
   if (ret<0) {
     libusb_close(nxt->hdl);
     return NXT_CONFIGURATION_ERROR;
   }
 
-  ret = libusb_claim_interface(nxt->hdl, 1);
+  ret = libusb_claim_interface(nxt->hdl, INTFC);
   if (ret<0) {
     libusb_close(nxt->hdl);
     return NXT_IN_USE;
@@ -126,7 +134,7 @@ nxt_open(nxt_t *nxt) {
   nxt_send_str(nxt, "N#");
   nxt_recv_buf(nxt, buf, 2);
   if (memcmp(buf, "\n\r", 2) != 0) {
-      libusb_release_interface(nxt->hdl, 1);
+      libusb_release_interface(nxt->hdl, INTFC);
       libusb_close(nxt->hdl);
       return NXT_HANDSHAKE_FAILED;
   }
@@ -139,7 +147,7 @@ nxt_open(nxt_t *nxt) {
  */
 nxt_error_t
 nxt_close(nxt_t *nxt) {
-  libusb_release_interface(nxt->hdl, 1);
+  libusb_release_interface(nxt->hdl, INTFC);
   libusb_close(nxt->hdl);
   libusb_unref_device(nxt->dev);
   free(nxt);
@@ -161,7 +169,7 @@ nxt_in_reset_mode(nxt_t *nxt) {
 nxt_error_t
 nxt_send_buf(nxt_t *nxt, char *buf, int len) {
   int numXfer;
-  int ret = libusb_bulk_transfer(nxt->hdl, 0x1, (unsigned char*)buf, len, &numXfer, 0);
+  int ret = libusb_bulk_transfer(nxt->hdl, EP_OUT, (unsigned char*)buf, len, &numXfer, 0);
   
   if (ret<0) return NXT_USB_WRITE_ERROR;
   return NXT_OK;
@@ -181,7 +189,7 @@ nxt_send_str(nxt_t *nxt, char *str) {
 nxt_error_t
 nxt_recv_buf(nxt_t *nxt, char *buf, int len) {
   int numXfer;
-  int ret = libusb_bulk_transfer(nxt->hdl, 0x82, (unsigned char*)buf, len, &numXfer, 0);
+  int ret = libusb_bulk_transfer(nxt->hdl, EP_IN, (unsigned char*)buf, len, &numXfer, 0);
   
   if (ret<0) return NXT_USB_READ_ERROR;
   return NXT_OK;
