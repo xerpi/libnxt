@@ -10,7 +10,7 @@ else:
 	endian = '_NXT_LITTLE_ENDIAN'
 
 BuildEnv = Environment(CCFLAGS=['-Wall', '-std=gnu99',
-				'-g', '-ggdb', '-D' + endian, '-I/usr/local/include/libusb-1.0'])
+				'-g', '-ggdb', '-D' + endian, '-I/usr/local/include/libusb-1.0', '-I.'])
 if auto_libs:
 	BuildEnv.ParseConfig('pkg-config --cflags --libs ' + auto_libs)
 
@@ -24,7 +24,7 @@ Default(BuildEnv.Library('nxt',
 			 LIBS='usb'))
 
 Default(BuildEnv.Program('fwflash', 'main_fwflash.c',
-			 LIBS=['usb', 'nxt'], LIBPATH='.'))
+			 LIBS=['usb-1.0', 'nxt'], LIBPATH=['.','/usr/local/lib']))
 
 Default(BuildEnv.Program('fwexec', 'main_fwexec.c',
-			 LIBS=['usb', 'nxt'], LIBPATH='.'))
+			 LIBS=['usb-1.0', 'nxt'], LIBPATH=['.','/usr/local/lib']))
