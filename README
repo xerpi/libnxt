@@ -1,7 +1,7 @@
                   LibNXT and FwFlash
-                        v0.3
-                    David Anderson
-                 ====================
+                        v0.4
+          David Anderson & Peter N. Steinmetz
+          ===================================
 
 What?
 =====
@@ -18,7 +18,7 @@ intelligent brick at a relatively low level. It currently does:
 
 LibNXT is targetted at the platforms that the official Lego Minstorms
 NXT software overlooks. Specifically, it will work on any
-POSIX-compliant operating system where libusb 0.1
+POSIX-compliant operating system where libusb 1.0
 (http://libusb.sf.net/) is supported.
 
 The design of LibNXT is layered, meaning you can plug into it at any
@@ -57,7 +57,13 @@ windows software at work. Since then, after obtaining a
 proof-of-concept application, I've been implementing this library to
 abstract the horrors of low-level USB chatter into a nice, clean
 library.
-
+ - Release 0.4 (23/03/2013) : lowlevel.c rewritten to use the 
+                libusb 1.0 API. Also includes
+                modifications to deal with other kernel
+                drivers seizing the interface. This is often happening
+                because the NXT presents itself as a communications 
+                type device, and standard communications drivers 
+                will often seize it.
  - Release 0.3 (22/04/2007) : more than a year later, there are a few
                 changes, and it can't hurt to push them out in an
                 actual release. This release includes a more
@@ -86,10 +92,10 @@ library.
 How?
 ====
 
-To compile all of this you'll need a copy of libusb 0.1 on your
+To compile all of this you'll need a copy of libusb 1.0 on your
 system, as well as the scons project manager.
 
- - Libusb 0.1: http://libusb.sf.net/
+ - Libusb 1.0: http://libusb.sf.net/
  - Scons: http://www.scons.org/
 
 When you have all that, just run 'scons' in the libnxt directory, and
@@ -127,3 +133,19 @@ If you don't have a suitable cross-compiler, you can just run 'scons'
 as usual. The build system will see that the flash driver is missing,
 and offer to download a binary copy from the LibNXT website and use
 that.
+
+Use on Darwin/Mac OS X
+======================
+
+For this operating system, the project includes a kernel extension which 
+can be installed to prevent the Mac CDC driver from seizing the device 
+and preventing this library from using it.
+
+To install, copy the kext to the system 
+location with 'sudo cp -R OxXCodelessKext/LibusbShield.kext /System/Library/Extensions'.
+Then load it with 'sudo kextload /System/Library/Extensions/LibusbShield.kext'. When you next plug in the NXT it should be useable.
+
+This solution is taken from an email list posting at 
+http://libusb.6.n5.nabble.com/Re-device-not-opened-for-exclusive-access-td1621.html
+
+
