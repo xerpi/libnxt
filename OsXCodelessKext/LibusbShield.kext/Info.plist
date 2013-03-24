@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?> 
+    <!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"> 
+    <plist version="1.0"> 
+    <dict> 
+        <key>CFBundleDevelopmentRegion</key> <string>English</string> 
+        <key>CFBundleGetInfoString</key> <string>Libusb USB device Shield</string> 
+        <key>CFBundleIdentifier</key> <string>com.libusb.USB_Shield</string> 
+        <key>CFBundleInfoDictionaryVersion</key> <string>6.0</string> 
+        <key>CFBundlePackageType</key> <string>KEXT</string> 
+        <key>CFBundleSignature</key> <string>????</string> 
+        <key>CFBundleVersion</key> <string>1.0</string> 
+        <key>IOKitPersonalities</key> 
+        <dict> 
+            <key>NxtReset</key> 
+            <dict> 
+                <key>CFBundleIdentifier</key> <string>com.libusb.USB_Shield</string> 
+                <key>IOClass</key> <string>IOService</string> 
+                <key>IOProviderClass</key> <string>IOUSBDevice</string> 
+                <key>idVendor</key> <integer>1003</integer> 
+                <key>idProduct</key> <integer>24868</integer> 
+            </dict> 
+            <key>NxtRunning</key> 
+            <dict> 
+                <key>CFBundleIdentifier</key> <string>com.libusb.USB_Shield</string> 
+                <key>IOClass</key> <string>IOService</string> 
+                <key>IOProviderClass</key> <string>IOUSBDevice</string> 
+                <key>idVendor</key> <integer>1003</integer> 
+                <key>idProduct</key> <integer>2</integer> 
+            </dict> 
+        </dict>
+        <key>OSBundleCompatibleVersion</key> <string>1.0</string> 
+        <key>OSBundleLibraries</key> 
+        <dict> 
+		      <key>com.apple.kpi.iokit</key> <string>10.8</string>
+		      <key>com.apple.kpi.libkern</key> <string>10.8</string>
+        </dict> 
+    </dict> 
+    </plist>
