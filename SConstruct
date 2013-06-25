@@ -24,7 +24,7 @@ Default(BuildEnv.Library('nxt',
 			 LIBS='usb'))
 
 Default(BuildEnv.Program('fwflash', 'main_fwflash.c',
-			 LIBS=['usb', 'nxt'], LIBPATH='.'))
+			 LIBS=['nxt', 'usb'], LIBPATH='.'))
 
 Default(BuildEnv.Program('fwexec', 'main_fwexec.c',
-			 LIBS=['usb', 'nxt'], LIBPATH='.'))
+			 LIBS=['nxt', 'usb'], LIBPATH='.'))
